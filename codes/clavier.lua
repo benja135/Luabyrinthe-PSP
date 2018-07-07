@@ -88,7 +88,7 @@ function clavier(type,info) -- 1: tout, 2: que chiffre
 			text = text..strings[maj][selection]
 		end
 		
-		if pad:circle() and oldpad ~= pad then -- On enléve le dernier string
+		if pad:circle() and oldpad ~= pad then -- On enleve le dernier string
 			old_text = text
 			text = ""
 			for i=1,#old_text-1 do

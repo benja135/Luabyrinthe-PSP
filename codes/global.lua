@@ -12,16 +12,16 @@ gris = Color.new(51,51,51,255)
 beige = Color.new(255,204,153,255)
 
 function selection_menu(maxselection,selection)
-	if pad:down() and oldpad ~= pad then
-		selection = selection + 1
-	elseif pad:up() and oldpad ~= pad then
-		selection = selection - 1
-	end
+  if pad:down() and oldpad ~= pad then
+    selection = selection + 1
+  elseif pad:up() and oldpad ~= pad then
+    selection = selection - 1
+  end
 
-	if selection > maxselection then
-		selection = 1
-	elseif selection < 1 then
-		selection = maxselection
-	end
-	return selection
+  if selection > maxselection then
+    selection = 1
+  elseif selection < 1 then
+    selection = maxselection
+  end
+  return selection
 end

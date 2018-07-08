@@ -83,7 +83,7 @@ end
 local perso = {bombe = 0, statut = "right", x = 1, y = 1}
 
 -- Chargement des tuiles et définition de leur comportement et de leur priorité d'affichage
--- e: comportement pour les ennemis, b: comportement pour le destruction par bombes, 
+-- e: comportement pour les ennemis, b: comportement pour la destruction par bombes, 
 -- p: comportement pour la pose de bombe, j: pour le joueur
 -- Priorités 0: aucune priorité ou pas nécéssaire
 local tile = {}
@@ -230,7 +230,7 @@ function editeur(choix)
       end
     end
   else
-    grille = level[2][choix].code	-- On charge la grille du niveau choisi
+    grille = level[2][choix].code   -- On charge la grille du niveau choisi
   end
 
   affichage_end()
@@ -322,56 +322,58 @@ function editeur(choix)
     end
 
     if pad:start() then -- Si on valide la création de la map
+      local fin = nil
+      local begin = nil
       for x=1,30 do
         for y=1,16 do
           if grille[x][y] == 4 then -- Si le point end est bien en place
-            local fin = {x=x,y=y}
-            grille[x][y] = 1
-            for x=1,30 do
-              for y=1,16 do
-                if grille[x][y] == 10 then -- Le point start est en place donc on peut sauvegarde le lv
-                  local begin = {x=x,y=y}
-                  grille[x][y] = 1
-                  local bombe_nbr = clavier(2,"Nombre de bombe?")
-                  local temps = clavier(2,"Challenge temps?")
-                  local move = clavier(2,"Challenge deplacement?")								
-                  local frag_max = clavier(2,"Challenge fragment?")
-                  local frag = clavier(2,"Fragment minimum?")
-                  local titre = clavier(1,"Titre du niveau?")
-                  local auteur = clavier(1,"Auteur?")
-                  local save_lvl = 'save_lvl={begin={x='..begin.x..',y='..begin.y..'},fin={x='..fin.x..',y='..fin.y..'},auteur="'..auteur..
-                  '",bombe_nbr='..bombe_nbr..', objectif={frag='..frag..',frag_max='..frag_max..',temps='..temps..',move ='..move..'}, titre="'..titre..
-                  '", code={'
-                  for x=1,30 do
-                    save_lvl = save_lvl.."{"
-                    for y=1,16 do
-                      save_lvl = save_lvl..grille[x][y]
-                      if y < 16 then save_lvl = save_lvl.."," end
-                    end
-                    if x < 30 then save_lvl = save_lvl.."}," else save_lvl = save_lvl.."}}}" end
-                  end
-                  level_nbr[2] = level_nbr[2] + 1
-                  file = io.open("levels/arcade/"..level_nbr[2]..".txt","w")
-                  file:write(save_lvl)
-                  file:close()
-                  -- On lit ensuite la save qui n'est plus un string mais une table puis on le met dans le gros tableau de level
-                  dofile("levels/arcade/"..level_nbr[2]..".txt")
-                  level[2][level_nbr[2]] = save_lvl
-                  save_lvl = nil
-                  System.message('Creation du niveau reussis.',0)
-                  main()
-                end
-              end
-            end
+            fin = {x=x,y=y}
+          elseif grille[x][y] == 10 then -- Le point start est en place
+            begin = {x=x,y=y}
           end
         end
       end
-      -- Si on est la c'est qui manque le start et/ou le end
+
+      if fin and begin then
+        local bombe_nbr = clavier(2,"Nombre de bombe?")
+        local temps = clavier(2,"Challenge temps?")
+        local move = clavier(2,"Challenge deplacement?")                                
+        local frag_max = clavier(2,"Challenge fragment?")
+        local frag = clavier(2,"Fragment minimum?")
+        local titre = clavier(1,"Titre du niveau?")
+        local auteur = clavier(1,"Auteur?")
+        local save_lvl = 'save_lvl={begin={x='..begin.x..',y='..begin.y..'},fin={x='..fin.x..',y='..fin.y..'},auteur="'..auteur..
+        '",bombe_nbr='..bombe_nbr..', objectif={frag='..frag..',frag_max='..frag_max..',temps='..temps..',move='..move..'}, titre="'..titre..
+        '", code={'
+        grille[begin.x][begin.y] = 1
+        grille[fin.x][fin.y] = 1
+        
+        for x=1,30 do
+          save_lvl = save_lvl.."{"
+          for y=1,16 do
+            save_lvl = save_lvl..grille[x][y]
+            if y < 16 then save_lvl = save_lvl.."," end
+          end
+          if x < 30 then save_lvl = save_lvl.."}," else save_lvl = save_lvl.."}}}" end
+        end
+        level_nbr[2] = level_nbr[2] + 1
+        file = io.open("levels/arcade/"..level_nbr[2]..".txt","w")
+        file:write(save_lvl)
+        file:close()
+
+        dofile("levels/arcade/"..level_nbr[2]..".txt")
+        level[2][level_nbr[2]] = save_lvl
+        save_lvl = nil
+        System.message('Creation du niveau reussis.',0)
+        main()
+      end
+
       System.message('Il manque le point "start" et/ou "end"!',0)
       pad = Controls.read()
     end
 
-    oldpad = pad 
+
+    oldpad = pad
     affichage_end()
   end
 end
@@ -501,6 +503,7 @@ function init_level(level_num,gt) -- A MODIF
         ennemis[ennemis_nbr] = {x = x,y = y,timer = 1,timeout = math.floor(math.random(30,50)),vitesse = 1,old = 1}
       elseif grille[x][y] == 6 then
         bombe[bombe_num] = {x = x, y = y, compteur = 0, timer = Timer.new()}
+        bombe[bombe_num].timer:reset()
         bombe_num = bombe_num + 1
       end
     end
@@ -557,45 +560,45 @@ function main()
   local size = {1.1,0.8}
   local noir_tab = {Color.new(0,0,0,255),Color.new(0,0,0,80)}
 
-  local function options()
+local function options()
 
-    local selection = 1
-    oldpad = Controls.read()
+  local selection = 1
+  oldpad = Controls.read()
 
-    while true do
-      affichage_start()
-      pad = Controls.read()
+  while true do
+    affichage_start()
+    pad = Controls.read()
 
-      screen.print(30,120,text[config.langue].options,1.1,noir,vert,4)
+    screen.print(30,120,text[config.langue].options,1.1,noir,vert,4)
 
-      screen.print(40,145,text[config.langue].langue,0.8,noir,color_text[selection][1],4)
-      screen.print(40,145+15,text[config.langue].queue[config.queue],0.8,noir,color_text[selection][2],4)
-      screen.print(40,145+15*2,text[config.langue].particules[config.particules],0.8,noir,color_text[selection][3],4)
-      screen.print(40,145+15*3,text[config.langue].theme[config.theme],0.8,noir,color_text[selection][4],4)
-      screen.print(40,145+15*4,text[config.langue].sons[config.sons],0.8,noir,color_text[selection][5],4)
-      screen.print(40,145+15*5,text[config.langue].musique[config.musiques],0.8,noir,color_text[selection][6],4)
-      if debug then screen.print(40,265,"RAM: "..System.getFreeMemory().." octets",0.8,noir,rouge,4) end
+    screen.print(40,145,text[config.langue].langue,0.8,noir,color_text[selection][1],4)
+    screen.print(40,145+15,text[config.langue].queue[config.queue],0.8,noir,color_text[selection][2],4)
+    screen.print(40,145+15*2,text[config.langue].particules[config.particules],0.8,noir,color_text[selection][3],4)
+    screen.print(40,145+15*3,text[config.langue].theme[config.theme],0.8,noir,color_text[selection][4],4)
+    screen.print(40,145+15*4,text[config.langue].sons[config.sons],0.8,noir,color_text[selection][5],4)
+    screen.print(40,145+15*5,text[config.langue].musique[config.musiques],0.8,noir,color_text[selection][6],4)
+    if debug then screen.print(40,265,"RAM: "..System.getFreeMemory().." octets",0.8,noir,rouge,4) end
 
-
-      if pad:cross() and oldpad ~= pad then
-        if selection == 1 then if config.langue == 1 then config.langue = 2 else config.langue = 1 end
+    if pad:cross() and oldpad ~= pad then
+      if selection == 1 then if config.langue == 1 then config.langue = 2 else config.langue = 1 end
       elseif selection == 2 then if config.queue == 1 then config.queue = 2 else config.queue = 1 end
-    elseif selection == 3 then if config.particules == 1 then config.particules = 2 else config.particules = 1 end
-  elseif selection == 4 then if config.theme < 3 then config.theme = config.theme + 1 else config.theme = 1 end
-elseif selection == 5 then if config.sons == 1 then config.sons = 2 else config.sons = 1 end
-elseif selection == 6 then if config.musiques == 1 then config.musiques = 2 else config.musiques = 1 end end
-end
+      elseif selection == 3 then if config.particules == 1 then config.particules = 2 else config.particules = 1 end
+      elseif selection == 4 then if config.theme < 3 then config.theme = config.theme + 1 else config.theme = 1 end
+      elseif selection == 5 then if config.sons == 1 then config.sons = 2 else config.sons = 1 end
+      elseif selection == 6 then if config.musiques == 1 then config.musiques = 2 else config.musiques = 1 end 
+      end
+    end
 
-if pad:circle() and oldpad ~= pad then
-  selection = 8
-  break
-end
+    if pad:circle() and oldpad ~= pad then
+      selection = 8
+      break
+    end
 
-selection = selection_menu(6,selection)
+    selection = selection_menu(6,selection)
 
-oldpad = pad 
-affichage_end()
-end
+    oldpad = pad 
+    affichage_end()
+  end
 
 end
 
@@ -612,6 +615,7 @@ local function menu2()
   screen.print(100,200,text[config.langue].bonus,size[2],noir_tab[2],color_text[selection][7],4)
   screen.print(100,225,text[config.langue].options,size[2],noir_tab[2],color_text[selection][8],4)
 end
+
 
 while true do
   affichage_start()
@@ -706,26 +710,30 @@ function game(gt)
     end
   end
 
+  function declenchement_explo_xy(x, y)
+    for n=1, bombe_num do -- On cherche le numéro de la bombe qui est sur cette case
+      if bombe[n] ~= nil then -- Si elle existe
+        if bombe[n].compteur == 0 then -- Si elle n'a pas été déclenché
+          if bombe[n].x == x and bombe[n].y == y then -- Si la position correspond
+            bombe[n].timer:start()
+          end
+        end
+      end
+    end
+  end
+    
   -- Explosion ciblé + réaction en chaine
-  function declenchement_explo_cible(i) -- (numéro de la bombe à exploser)
-    bombe[i].compteur = 1 -- On fait explosé la bombe cible
+  function declenchement_explo_cible(i)
+    bombe[i].compteur = 1 -- On fait exploser la bombe cible
     for x=-bombe_po,bombe_po do -- On regarde dans la porté de la bombe cible s'il y a d'autre bombe, si oui on va déclencher leur timer
-      for y=-bombe_po+math.abs(x), bombe_po-math.abs(x) do -- Yeah :p
-        if bombe[i].x+x <= 30 and bombe[i].x+x >= 1 and bombe[i].y+y <= 16 and bombe[i].y+y >= 1 and tile[1][grille[bombe[i].x+x][bombe[i].y+y]].b == 1 then -- Si la cellule est accessible par l'explosion d'une bombe
-          if grille[bombe[i].x+x][bombe[i].y+y] == 6 then -- Si c'est une bombe, on va déclencher le timer
-            for n=1, bombe_num do -- On cherche le numéro de la bombe qui est sur cette case
-              if bombe[n] ~= nil then -- Si elle existe
-                if bombe[n].compteur == 0 then -- Si elle a pas été déclanché
-                  if bombe[n].x == bombe[i].x+x then
-                    if bombe[n].y == bombe[i].y+y then
-                      bombe[n].timer:start() -- On déclenche le timer de la bombe
-                    end
-                  end
-                end
-              end
-            end
+      for y=-bombe_po+math.abs(x), bombe_po-math.abs(x) do
+        local px = bombe[i].x+x
+        local py = bombe[i].y+y
+        if px <= 30 and px >= 1 and py <= 16 and py >= 1 and tile[1][grille[px][py]].b == 1 then
+          if grille[px][py] == 6 then -- Si c'est une bombe, on va déclencher le timer
+            declenchement_explo_xy(px, py)
           else
-            grille[bombe[i].x+x][bombe[i].y+y] = 9 -- Si c'est pas une bombe on écrase la cellule (9: break)
+            grille[px][py] = 9 -- Si c'est pas une bombe on écrase la cellule (9: break)
           end
         end
       end
@@ -745,58 +753,57 @@ function game(gt)
     end
   end
 
-  local function pause(gt)
+local function pause(gt)
 
-    oldpad = Controls.read()
-    local selection = 1
-    alpha_transparent = 200
+  oldpad = Controls.read()
+  local selection = 1
+  alpha_transparent = 200
 
-    while true do
-      screen.startDraw()
-      screen.clear(0)
-      pad = Controls.read()
+  while true do
+    screen.startDraw()
+    screen.clear(0)
+    pad = Controls.read()
 
-      affichage_transparent(gt)
+    affichage_transparent(gt)
 
-      screen.print(28,65,text[config.langue].pause,1.2,blanc,vert,4)
+    screen.print(28,65,text[config.langue].pause,1.2,blanc,vert,4)
 
-      screen.print(40,90,text[config.langue].reprendre,0.8,blanc,color_text[selection][1],4) 
-      screen.print(40,90+15,text[config.langue].recommencer,0.8,blanc,color_text[selection][2],4) 
-      screen.print(40,90+15*2,text[config.langue].retour,0.8,blanc,color_text[selection][3],4) 
-      screen.print(40,90+15*3,text[config.langue].langue,0.8,blanc,color_text[selection][4],4)
-      screen.print(40,90+15*4,text[config.langue].queue[config.queue],0.8,blanc,color_text[selection][5],4)
-      screen.print(40,90+15*5,text[config.langue].particules[config.particules],0.8,blanc,color_text[selection][6],4)
-      screen.print(40,90+15*6,text[config.langue].theme[config.theme],0.8,blanc,color_text[selection][7],4)
-      screen.print(40,90+15*7,text[config.langue].sons[config.sons],0.8,blanc,color_text[selection][8],4)
-      screen.print(40,90+15*8,text[config.langue].musique[config.musiques],0.8,blanc,color_text[selection][9],4)
+    screen.print(40,90,text[config.langue].reprendre,0.8,blanc,color_text[selection][1],4) 
+    screen.print(40,90+15,text[config.langue].recommencer,0.8,blanc,color_text[selection][2],4) 
+    screen.print(40,90+15*2,text[config.langue].retour,0.8,blanc,color_text[selection][3],4) 
+    screen.print(40,90+15*3,text[config.langue].langue,0.8,blanc,color_text[selection][4],4)
+    screen.print(40,90+15*4,text[config.langue].queue[config.queue],0.8,blanc,color_text[selection][5],4)
+    screen.print(40,90+15*5,text[config.langue].particules[config.particules],0.8,blanc,color_text[selection][6],4)
+    screen.print(40,90+15*6,text[config.langue].theme[config.theme],0.8,blanc,color_text[selection][7],4)
+    screen.print(40,90+15*7,text[config.langue].sons[config.sons],0.8,blanc,color_text[selection][8],4)
+    screen.print(40,90+15*8,text[config.langue].musique[config.musiques],0.8,blanc,color_text[selection][9],4)
 
-      if pad:start() and oldpad ~= pad then
+    if pad:start() and oldpad ~= pad then
+      break
+    elseif pad:cross() and oldpad ~= pad then
+      if selection == 1 then
         break
-      elseif pad:cross() and oldpad ~= pad then
-        if selection == 1 then
-          break
-        elseif selection == 2 then
-          init_level(level_num,gt)
-          break
-        elseif selection == 3 then
-          main()
-        elseif selection == 4 then if config.langue == 1 then config.langue = 2 else config.langue = 1 end
+      elseif selection == 2 then
+        init_level(level_num,gt)
+        break
+      elseif selection == 3 then
+        main()
+      elseif selection == 4 then if config.langue == 1 then config.langue = 2 else config.langue = 1 end
       elseif selection == 5 then if config.queue == 1 then config.queue = 2 else config.queue = 1 end
-    elseif selection == 6 then if config.particules == 1 then config.particules = 2 else config.particules = 1 end
-  elseif selection == 7 then if config.theme < 3 then config.theme = config.theme + 1 else config.theme = 1 end
-elseif selection == 8 then if config.sons == 1 then config.sons = 2 else config.sons = 1 end
-elseif selection == 9 then if config.musiques == 1 then config.musiques = 2 else config.musiques = 1 end 
-end
-elseif pad:circle() and oldpad ~= pad then
-break
-end
+      elseif selection == 6 then if config.particules == 1 then config.particules = 2 else config.particules = 1 end
+      elseif selection == 7 then if config.theme < 3 then config.theme = config.theme + 1 else config.theme = 1 end
+      elseif selection == 8 then if config.sons == 1 then config.sons = 2 else config.sons = 1 end
+      elseif selection == 9 then if config.musiques == 1 then config.musiques = 2 else config.musiques = 1 end 
+      end
+    elseif pad:circle() and oldpad ~= pad then
+      break
+    end
 
-selection = selection_menu(10,selection)
+    selection = selection_menu(10,selection)
 
-oldpad = pad 
-affichage_end()
-end
-
+    oldpad = pad 
+    affichage_end()
+  end
 end
 
 local function graphic_tail(create,x,y)
@@ -838,15 +845,15 @@ function perso_move(x,y,gt)
       if config.queue == 1 then
         graphic_tail(true,perso.x,perso.y)
       end
-
-      if grille[perso.x][perso.y] == 5 then 
+      
+      if grille[perso.x + x][perso.y + y] == 5 then 
         frag = frag + 1 -- Si on bouge sur un fragment
-      elseif grille[perso.x][perso.y] == 3 then
+      elseif grille[perso.x + x][perso.y + y] == 3 then
         level_end(1,gt) -- Si on bouge sur un ennemis
-      elseif grille[perso.x][perso.y] == 4 then
+      elseif grille[perso.x + x][perso.y + y] == 4 then
         level_end(2,gt) -- Si on bouge sur le end
       end
-
+      
       grille[perso.x][perso.y] = 1
       perso.x = perso.x + x
       perso.y = perso.y + y
@@ -875,12 +882,12 @@ function level_end(resultat,gt)
     if alpha_transparent < 200 then
       alpha_transparent = alpha_transparent + 6
     else
-      screen.print(50,130,text[config.lanque].fin.titre[i],1.2,blanc,color_end_lvl[i],4)
+      screen.print(50,130,text[config.langue].fin.titre[resultat],1.2,blanc,color_end_lvl[resultat],4)
 
-      screen.print(65,150,text[config.lanque].fin.ligne[i],0.8,blanc,color_text[selection][1],4) 
-      screen.print(65,165,text[config.lanque].fin.ligne2[i],0.8,blanc,color_text[selection][2],4)
-      screen.print(65,180,text[config.lanque].fin.ligne3[i],0.8,blanc,color_text[selection][3],4) 
-      screen.print(65,205,text[config.lanque].temps..temps.minutes.."'"..temps.secondes.."'"..temps.mili.."'",0.8,blanc,0,4) 
+      screen.print(65,150,text[config.langue].fin.ligne[resultat],0.8,blanc,color_text[selection][1],4) 
+      screen.print(65,165,text[config.langue].fin.ligne2[resultat],0.8,blanc,color_text[selection][2],4)
+      screen.print(65,180,text[config.langue].fin.ligne3[resultat],0.8,blanc,color_text[selection][3],4) 
+      screen.print(65,205,text[config.langue].temps..temps.minutes.."'"..temps.secondes.."'"..temps.mili.."'",0.8,blanc,0,4) 
 
       if pad:cross() and oldpad ~= pad then
         if resultat == 1 then -- on vient de perdre 
@@ -995,7 +1002,7 @@ while true do
   end
 
   ennemis_move()
-  if grille[perso.x][perso.y] == 3 then level_end(1) end -- Si un ennemis est venu sur le joueur
+  if grille[perso.x][perso.y] == 3 then level_end(1, gt) end -- Si un ennemis est venu sur le joueur
 
   if pad:l() and not pad:r() then
     Image.blit((perso.x-3)*16,(perso.y-3)*16,deto.img) -- affichage détonateur
@@ -1010,11 +1017,11 @@ while true do
       if bombe[i].timer:time() >= explo_temps then -- gestion de l'explosion retardé des bombes
         bombe[i].timer:stop()
         bombe[i].timer:reset(0)
-        if bombe[i]. compteur == 0 then
+        if bombe[i].compteur == 0 then
           declenchement_explo_cible(i)
         end
       end
-      if change_anim then -- gestion de l'anim des bombes, s'effectue 1 fois sur 2
+      if change_anim then -- S'effectue 1 fois sur 2
         if bombe[i].compteur > 0 then
           Image.blit((bombe[i].x-1)*16-3*16,(bombe[i].y-1)*16-3*16,explo_anim[bombe[i].compteur])
           bombe[i].compteur = bombe[i].compteur + 1
@@ -1027,12 +1034,11 @@ while true do
     end
   end
 
-  if change_anim then change_anim = false else change_anim = true end
-
+  change_anim = not change_anim
+  
   if config.particules == 1 then
     particules(particules_max,true,0.8) 
   end
-
 
   if fps.timer:time() >= 1000 then
     fps.fps = fps.i
